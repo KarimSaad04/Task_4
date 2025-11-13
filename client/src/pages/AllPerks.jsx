@@ -67,7 +67,7 @@ export default function AllPerks() {
   }, [searchQuery, merchantFilter]) // Dependencies: re-run when searchQuery or merchantFilter changes
 
   
-  async function loadAllPerks() {
+  async function loadAllPerks(overrides = {}) {
     // Reset error state before new request
     setError('')
     
@@ -75,13 +75,16 @@ export default function AllPerks() {
     setLoading(true)
     
     try {
+      const effectiveSearch = (overrides.searchQuery ?? searchQuery)?.trim()
+      const effectiveMerchant = (overrides.merchantFilter ?? merchantFilter)?.trim()
+
       // Make GET request to /api/perks/all with query parameters
       const res = await api.get('/perks/all', {
         params: {
           // Only include search param if searchQuery is not empty
-          search: searchQuery.trim() || undefined,
+          search: effectiveSearch || undefined,
           // Only include merchant param if merchantFilter is not empty
-          merchant: merchantFilter.trim() || undefined
+          merchant: effectiveMerchant || undefined
         }
       })
       
@@ -147,14 +150,16 @@ export default function AllPerks() {
             
             
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">
+              <label htmlFor="search-name" className="block text-sm font-medium text-zinc-700 mb-2">
                 <span className="material-symbols-outlined text-sm align-middle">search</span>
                 {' '}Search by Name
               </label>
               <input
+                id="search-name"
                 type="text"
                 className="input"
                 placeholder="Enter perk name..."
+                value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
               />
               <p className="text-xs text-zinc-500 mt-1">
@@ -164,13 +169,20 @@ export default function AllPerks() {
 
             {/* Merchant Filter Dropdown - Controlled Component */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">
+              <label htmlFor="merchant-filter" className="block text-sm font-medium text-zinc-700 mb-2">
                 <span className="material-symbols-outlined text-sm align-middle">store</span>
                 {' '}Filter by Merchant
               </label>
               <select
+                id="merchant-filter"
                 className="input"
-                onChange={e => setMerchantFilter(e.target.value)}
+                value={merchantFilter}
+                onChange={e => {
+                  const next = e.target.value
+                  setMerchantFilter(next)
+                  // fetch immediately with the latest selection to satisfy the test timing
+                  loadAllPerks({ merchantFilter: next })
+                }}
               >
                 <option value="">All Merchants</option>
                 
